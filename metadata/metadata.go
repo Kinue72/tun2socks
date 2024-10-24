@@ -3,6 +3,7 @@ package metadata
 import (
 	"net"
 	"net/netip"
+	"strconv"
 )
 
 // Metadata contains metadata of transport protocol sessions.
@@ -11,6 +12,7 @@ type Metadata struct {
 	SrcIP   netip.Addr `json:"sourceIP"`
 	MidIP   netip.Addr `json:"dialerIP"`
 	DstIP   netip.Addr `json:"destinationIP"`
+	DstName string     `json:"destinationName"`
 	SrcPort uint16     `json:"sourcePort"`
 	MidPort uint16     `json:"dialerPort"`
 	DstPort uint16     `json:"destinationPort"`
@@ -21,7 +23,13 @@ func (m *Metadata) DestinationAddrPort() netip.AddrPort {
 }
 
 func (m *Metadata) DestinationAddress() string {
-	return m.DestinationAddrPort().String()
+	var remote string
+	if len(m.DstName) > 0 {
+		remote = m.DstName
+	} else {
+		remote = m.DstIP.String()
+	}
+	return net.JoinHostPort(remote, strconv.FormatUint(uint64(m.DstPort), 10))
 }
 
 func (m *Metadata) SourceAddrPort() netip.AddrPort {
