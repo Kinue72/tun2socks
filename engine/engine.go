@@ -2,13 +2,11 @@ package engine
 
 import (
 	"errors"
-	"github.com/xjasonlyu/tun2socks/v2/component/fakeip"
-	"github.com/xjasonlyu/tun2socks/v2/component/trie"
 	"github.com/xjasonlyu/tun2socks/v2/dns"
-	"github.com/xjasonlyu/tun2socks/v2/proxy/proto"
 	"net"
 	"net/netip"
 	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -168,30 +166,33 @@ func restAPI(k *Key) error {
 	return nil
 }
 
-func fakeDNS(k *Key, proxy proxy.Proxy) (err error) {
-	if !k.FakeDNS {
-		return
+func startDnsServer(k *Key) (err error) {
+	if strings.EqualFold(k.DNSMode, "disabled") {
+		return nil
 	}
 
-	if proxy.Proto() != proto.Socks5 && proxy.Proto() != proto.HTTP && proxy.Proto() != proto.Shadowsocks &&
-		proxy.Proto() != proto.Socks4 {
-		return errors.New("remote DNS not supported with this proxy protocol")
-	}
-
-	ipnet, err := netip.ParsePrefix(k.FakeDNSNetIPv4)
+	ipnet, err := netip.ParsePrefix(k.FakeDNSIPv4Range)
 	if err != nil {
 		return err
 	}
 
-	pool, err := fakeip.New(fakeip.Options{
-		IPNet: ipnet,
-		Size:  1000,
-		Host:  trie.New(),
-	})
+	var mode dns.HandleMode
+	if strings.EqualFold(k.DNSMode, "virtual") {
+		mode = dns.VirtualMode
+	} else {
+		mode = dns.UpstreamMode
+	}
 
-	dns.EnableFakeDNS()
+	options := dns.ServerOption{
+		Mode:             mode,
+		ListenAddress:    k.DNSListenAddress,
+		VirtualRange:     ipnet,
+		UpstreamServer:   k.DNSUpstream,
+		EnableCache:      k.DNSUpstreamCache,
+		RedirectUpstream: k.FakeDNSRedirectUpstream,
+	}
 
-	dns.ReCreateServer(k.FakeDNSListenAddress, pool)
+	err = options.Start()
 
 	log.Infof("[DNS] Remote DNS enabled")
 	return
@@ -272,7 +273,7 @@ func netstack(k *Key) (err error) {
 		_defaultProxy.Proto(), _defaultProxy.Addr(),
 	)
 
-	err = fakeDNS(k, _defaultProxy)
+	err = startDnsServer(k)
 	if err != nil {
 		return err
 	}

@@ -122,7 +122,6 @@ type Options struct {
 	IPNet netip.Prefix
 	Host  *trie.DomainTrie
 	// Size sets the maximum number of entries in memory
-	// and does not work if Persistence is true
 	Size int
 }
 
