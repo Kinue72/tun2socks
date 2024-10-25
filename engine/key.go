@@ -17,4 +17,10 @@ type Key struct {
 	TUNPreUp                 string        `yaml:"tun-pre-up"`
 	TUNPostUp                string        `yaml:"tun-post-up"`
 	UDPTimeout               time.Duration `yaml:"udp-timeout"`
+	DNSMode                  string        `yaml:"dns-mode"`
+	DNSListenAddress         string        `yaml:"dns-listen-addr"`
+	DNSUpstream              string        `yaml:"dns-upstream"`
+	DNSUpstreamCache         bool          `yaml:"dns-upstream-cache"`
+	FakeDNSIPv4CIDR          string        `yaml:"fakedns-ipv4-cidr"`
+	FakeDNSRedirectUpstream  bool          `yaml:"fakedns-redirect-upstream"`
 }

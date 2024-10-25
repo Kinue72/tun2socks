@@ -2,9 +2,11 @@ package engine
 
 import (
 	"errors"
+	"github.com/xjasonlyu/tun2socks/v2/dns"
 	"net"
 	"net/netip"
 	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -70,6 +72,7 @@ func start() error {
 		general,
 		restAPI,
 		netstack,
+		dnsServer,
 	} {
 		if err := f(_defaultKey); err != nil {
 			return err
@@ -164,6 +167,43 @@ func restAPI(k *Key) error {
 	return nil
 }
 
+func dnsServer(k *Key) (err error) {
+	if strings.EqualFold(k.DNSMode, "disabled") {
+		return nil
+	}
+
+	if _defaultProxy, err = parseProxy(k.Proxy); err != nil {
+		return
+	}
+
+	ipnet, err := netip.ParsePrefix(k.FakeDNSIPv4CIDR)
+	if err != nil {
+		return err
+	}
+
+	var mode dns.HandleMode
+	if strings.EqualFold(k.DNSMode, "virtual") {
+		mode = dns.VirtualMode
+	} else {
+		mode = dns.UpstreamMode
+	}
+
+	options := dns.ServerOption{
+		Mode:             mode,
+		ListenAddress:    k.DNSListenAddress,
+		VirtualRange:     ipnet,
+		UpstreamServer:   k.DNSUpstream,
+		EnableCache:      k.DNSUpstreamCache,
+		RedirectUpstream: k.FakeDNSRedirectUpstream,
+		Dialer:           _defaultProxy,
+	}
+
+	err = options.Start()
+
+	log.Infof("[DNS] Remote DNS enabled")
+	return
+}
+
 func netstack(k *Key) (err error) {
 	if k.Proxy == "" {
 		return errors.New("empty proxy")
@@ -238,5 +278,6 @@ func netstack(k *Key) (err error) {
 		_defaultDevice.Type(), _defaultDevice.Name(),
 		_defaultProxy.Proto(), _defaultProxy.Addr(),
 	)
+
 	return nil
 }

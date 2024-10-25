@@ -40,6 +40,12 @@ func init() {
 	flag.StringVar(&key.TUNPreUp, "tun-pre-up", "", "Execute a command before TUN device setup")
 	flag.StringVar(&key.TUNPostUp, "tun-post-up", "", "Execute a command after TUN device setup")
 	flag.BoolVar(&versionFlag, "version", false, "Show version and then quit")
+	flag.StringVar(&key.DNSMode, "dns-mode", "virtual", "DNS Mode [disabled|virtual|upstream]")
+	flag.StringVar(&key.DNSListenAddress, "dns-listen-addr", "127.0.0.1:5354", "IP:port to listen on for DNS requests")
+	flag.StringVar(&key.DNSUpstream, "dns-upstream", "tcp://1.1.1.1", "DNS for upstream server [tcp|udp|https|tls]")
+	flag.BoolVar(&key.DNSUpstreamCache, "dns-upstream-cache", true, "Enable cache for upstream DNS")
+	flag.StringVar(&key.FakeDNSIPv4CIDR, "fakedns-ipv4-cidr", "198.18.0.0/15", "IPv4 CIDR for fake DNS A records")
+	flag.BoolVar(&key.FakeDNSRedirectUpstream, "fakedns-redirect-upstream", true, "Redirect all except A to upstream server")
 	flag.Parse()
 }
 

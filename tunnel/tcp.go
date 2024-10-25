@@ -2,6 +2,7 @@ package tunnel
 
 import (
 	"context"
+	"github.com/xjasonlyu/tun2socks/v2/dns"
 	"io"
 	"net"
 	"sync"
@@ -28,6 +29,8 @@ func (t *Tunnel) handleTCPConn(originConn adapter.TCPConn) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), tcpConnectTimeout)
 	defer cancel()
+
+	dns.ProcessMetadata(metadata)
 
 	remoteConn, err := t.Dialer().DialContext(ctx, metadata)
 	if err != nil {

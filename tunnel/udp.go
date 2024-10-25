@@ -1,6 +1,7 @@
 package tunnel
 
 import (
+	"github.com/xjasonlyu/tun2socks/v2/dns"
 	"io"
 	"net"
 	"sync"
@@ -25,6 +26,8 @@ func (t *Tunnel) handleUDPConn(uc adapter.UDPConn) {
 		DstIP:   parseTCPIPAddress(id.LocalAddress),
 		DstPort: id.LocalPort,
 	}
+
+	dns.ProcessMetadata(metadata)
 
 	pc, err := t.Dialer().DialUDP(metadata)
 	if err != nil {
@@ -105,7 +108,10 @@ func (pc *symmetricNATPacketConn) ReadFrom(p []byte) (int, net.Addr, error) {
 	for {
 		n, from, err := pc.PacketConn.ReadFrom(p)
 
-		if from != nil && from.String() != pc.dst {
+		// If pc.dst is not an IP address, it is a hostname. In that case, we
+		// do not know the source IP which packets should originate from and
+		// cannot drop them accordingly.
+		if from != nil && from.String() != pc.dst && net.ParseIP(pc.dst) != nil {
 			log.Warnf("[UDP] symmetric NAT %s->%s: drop packet from %s", pc.src, pc.dst, from)
 			continue
 		}
